@@ -49,5 +49,8 @@ struct SearchSettingsView: View {
         .onAppear {
             viewModel.load()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .vocabularyListsDidUpdate)) { _ in
+            viewModel.load()
+        }
     }
 }

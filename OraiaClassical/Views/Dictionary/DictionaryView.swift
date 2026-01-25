@@ -69,6 +69,12 @@ struct DictionaryView: View {
                 } label: {
                     Image(systemName: "slider.horizontal.3")
                 }
+
+                NavigationLink {
+                    VocabularyListsView()
+                } label: {
+                    Image(systemName: "list.bullet.rectangle")
+                }
             }
             .onAppear {
                 viewModel.refresh(query: query, options: options)
@@ -89,6 +95,9 @@ struct DictionaryView: View {
                 viewModel.search(query: query, options: options)
             }
             .onReceive(NotificationCenter.default.publisher(for: .lemmaDidUpdate)) { _ in
+                viewModel.refresh(query: query, options: options)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .vocabularyListsDidUpdate)) { _ in
                 viewModel.refresh(query: query, options: options)
             }
         }
