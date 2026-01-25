@@ -6,6 +6,7 @@ struct FormsGridView: View {
     let posCode: String
 
     @State private var studyMode: StudyMode = .reference
+    @State private var showVerbFilters = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -25,6 +26,21 @@ struct FormsGridView: View {
         .padding(.top, 16)
         .navigationTitle("Forms")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if posCode == "verb" {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showVerbFilters = true
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                    }
+                    .accessibilityLabel("Verb Filters")
+                }
+            }
+        }
+        .sheet(isPresented: $showVerbFilters) {
+            VerbGridFilterSettingsView()
+        }
     }
 
     private var header: some View {
@@ -436,6 +452,25 @@ private struct VerbFormsView: View {
     @StateObject private var viewModel: VerbFormsViewModel
     @State private var quizEntries: [Int64: QuizEntryState] = [:]
 
+    @AppStorage(VerbGridFilterKeys.personFirst) private var includeFirstPerson = true
+    @AppStorage(VerbGridFilterKeys.personSecond) private var includeSecondPerson = true
+    @AppStorage(VerbGridFilterKeys.personThird) private var includeThirdPerson = true
+    @AppStorage(VerbGridFilterKeys.personOther) private var includeOtherPerson = true
+
+    @AppStorage(VerbGridFilterKeys.numberSingular) private var includeSingular = true
+    @AppStorage(VerbGridFilterKeys.numberDual) private var includeDual = true
+    @AppStorage(VerbGridFilterKeys.numberPlural) private var includePlural = true
+    @AppStorage(VerbGridFilterKeys.numberOther) private var includeOtherNumber = true
+
+    @AppStorage(VerbGridFilterKeys.dialectAttic) private var includeAttic = true
+    @AppStorage(VerbGridFilterKeys.dialectDoric) private var includeDoric = true
+    @AppStorage(VerbGridFilterKeys.dialectIonic) private var includeIonic = true
+    @AppStorage(VerbGridFilterKeys.dialectAeolic) private var includeAeolic = true
+    @AppStorage(VerbGridFilterKeys.dialectEpic) private var includeEpic = true
+    @AppStorage(VerbGridFilterKeys.dialectKoine) private var includeKoine = true
+    @AppStorage(VerbGridFilterKeys.dialectByzantine) private var includeByzantine = true
+    @AppStorage(VerbGridFilterKeys.dialectUnspecified) private var includeUnspecifiedDialect = true
+
     init(lemmaID: Int64, studyMode: Binding<StudyMode>) {
         self.lemmaID = lemmaID
         _studyMode = studyMode
@@ -472,13 +507,16 @@ private struct VerbFormsView: View {
         .onChange(of: viewModel.forms) { _ in
             synchronizeQuizEntries()
         }
+        .onChange(of: filterToken) { _ in
+            synchronizeQuizEntries()
+        }
     }
 
     private var verbContent: some View {
-        let dialectSections = VerbDialectSection.build(from: viewModel.forms)
+        let dialectSections = VerbDialectSection.build(from: filteredForms)
         return Group {
             if dialectSections.isEmpty {
-                EmptyFormsPlaceholder(message: "No verbal forms available yet.")
+                EmptyFormsPlaceholder(message: "No verbal forms match your filters.")
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
@@ -506,7 +544,7 @@ private struct VerbFormsView: View {
     }
 
     private func synchronizeQuizEntries() {
-        let currentIDs = Set(viewModel.forms.map(\.id))
+        let currentIDs = Set(filteredForms.map(\.id))
         var updated: [Int64: QuizEntryState] = [:]
         for id in currentIDs {
             updated[id] = quizEntries[id] ?? QuizEntryState()
@@ -544,8 +582,216 @@ private struct VerbFormsView: View {
     }
 
     private func revealAllAnswers() {
-        for form in viewModel.forms {
+        for form in filteredForms {
             quizEntries[form.id] = QuizEntryState(input: form.form, isCorrect: true, isRevealed: true)
+        }
+    }
+
+    private var filteredForms: [VerbForm] {
+        let settings = VerbGridFilterSettings(
+            includeFirstPerson: includeFirstPerson,
+            includeSecondPerson: includeSecondPerson,
+            includeThirdPerson: includeThirdPerson,
+            includeOtherPerson: includeOtherPerson,
+            includeSingular: includeSingular,
+            includeDual: includeDual,
+            includePlural: includePlural,
+            includeOtherNumber: includeOtherNumber,
+            includeAttic: includeAttic,
+            includeDoric: includeDoric,
+            includeIonic: includeIonic,
+            includeAeolic: includeAeolic,
+            includeEpic: includeEpic,
+            includeKoine: includeKoine,
+            includeByzantine: includeByzantine,
+            includeUnspecifiedDialect: includeUnspecifiedDialect
+        )
+        return viewModel.forms.filter { settings.matches($0) }
+    }
+
+    private var filterToken: String {
+        [
+            includeFirstPerson,
+            includeSecondPerson,
+            includeThirdPerson,
+            includeOtherPerson,
+            includeSingular,
+            includeDual,
+            includePlural,
+            includeOtherNumber,
+            includeAttic,
+            includeDoric,
+            includeIonic,
+            includeAeolic,
+            includeEpic,
+            includeKoine,
+            includeByzantine,
+            includeUnspecifiedDialect
+        ]
+        .map { $0 ? "1" : "0" }
+        .joined()
+    }
+}
+
+private enum VerbGridFilterKeys {
+    static let personFirst = "verbGrid.filter.person.first"
+    static let personSecond = "verbGrid.filter.person.second"
+    static let personThird = "verbGrid.filter.person.third"
+    static let personOther = "verbGrid.filter.person.other"
+
+    static let numberSingular = "verbGrid.filter.number.singular"
+    static let numberDual = "verbGrid.filter.number.dual"
+    static let numberPlural = "verbGrid.filter.number.plural"
+    static let numberOther = "verbGrid.filter.number.other"
+
+    static let dialectAttic = "verbGrid.filter.dialect.attic"
+    static let dialectDoric = "verbGrid.filter.dialect.doric"
+    static let dialectIonic = "verbGrid.filter.dialect.ionic"
+    static let dialectAeolic = "verbGrid.filter.dialect.aeolic"
+    static let dialectEpic = "verbGrid.filter.dialect.epic"
+    static let dialectKoine = "verbGrid.filter.dialect.koine"
+    static let dialectByzantine = "verbGrid.filter.dialect.byzantine"
+    static let dialectUnspecified = "verbGrid.filter.dialect.unspecified"
+}
+
+private struct VerbGridFilterSettings {
+    let includeFirstPerson: Bool
+    let includeSecondPerson: Bool
+    let includeThirdPerson: Bool
+    let includeOtherPerson: Bool
+
+    let includeSingular: Bool
+    let includeDual: Bool
+    let includePlural: Bool
+    let includeOtherNumber: Bool
+
+    let includeAttic: Bool
+    let includeDoric: Bool
+    let includeIonic: Bool
+    let includeAeolic: Bool
+    let includeEpic: Bool
+    let includeKoine: Bool
+    let includeByzantine: Bool
+    let includeUnspecifiedDialect: Bool
+
+    func matches(_ form: VerbForm) -> Bool {
+        matchesPerson(form) && matchesNumber(form) && matchesDialect(form)
+    }
+
+    private func matchesPerson(_ form: VerbForm) -> Bool {
+        if let normalized = MorphologyNormalizer.normalizePerson(form.person) {
+            switch normalized.key {
+            case "first":
+                return includeFirstPerson
+            case "second":
+                return includeSecondPerson
+            case "third":
+                return includeThirdPerson
+            default:
+                return includeOtherPerson
+            }
+        }
+        return includeOtherPerson
+    }
+
+    private func matchesNumber(_ form: VerbForm) -> Bool {
+        if let normalized = MorphologyNormalizer.normalizeNumber(form.number) {
+            switch normalized.key {
+            case "singular":
+                return includeSingular
+            case "dual":
+                return includeDual
+            case "plural":
+                return includePlural
+            default:
+                return includeOtherNumber
+            }
+        }
+        return includeOtherNumber
+    }
+
+    private func matchesDialect(_ form: VerbForm) -> Bool {
+        let raw = form.dialect.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = raw.isEmpty ? "unspecified" : raw.lowercased()
+        switch key {
+        case "attic":
+            return includeAttic
+        case "doric":
+            return includeDoric
+        case "ionic":
+            return includeIonic
+        case "aeolic":
+            return includeAeolic
+        case "epic":
+            return includeEpic
+        case "koine":
+            return includeKoine
+        case "byzantine":
+            return includeByzantine
+        default:
+            return includeUnspecifiedDialect
+        }
+    }
+}
+
+private struct VerbGridFilterSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @AppStorage(VerbGridFilterKeys.personFirst) private var includeFirstPerson = true
+    @AppStorage(VerbGridFilterKeys.personSecond) private var includeSecondPerson = true
+    @AppStorage(VerbGridFilterKeys.personThird) private var includeThirdPerson = true
+    @AppStorage(VerbGridFilterKeys.personOther) private var includeOtherPerson = true
+
+    @AppStorage(VerbGridFilterKeys.numberSingular) private var includeSingular = true
+    @AppStorage(VerbGridFilterKeys.numberDual) private var includeDual = true
+    @AppStorage(VerbGridFilterKeys.numberPlural) private var includePlural = true
+    @AppStorage(VerbGridFilterKeys.numberOther) private var includeOtherNumber = true
+
+    @AppStorage(VerbGridFilterKeys.dialectAttic) private var includeAttic = true
+    @AppStorage(VerbGridFilterKeys.dialectDoric) private var includeDoric = true
+    @AppStorage(VerbGridFilterKeys.dialectIonic) private var includeIonic = true
+    @AppStorage(VerbGridFilterKeys.dialectAeolic) private var includeAeolic = true
+    @AppStorage(VerbGridFilterKeys.dialectEpic) private var includeEpic = true
+    @AppStorage(VerbGridFilterKeys.dialectKoine) private var includeKoine = true
+    @AppStorage(VerbGridFilterKeys.dialectByzantine) private var includeByzantine = true
+    @AppStorage(VerbGridFilterKeys.dialectUnspecified) private var includeUnspecifiedDialect = true
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Person") {
+                    Toggle("First Person", isOn: $includeFirstPerson)
+                    Toggle("Second Person", isOn: $includeSecondPerson)
+                    Toggle("Third Person", isOn: $includeThirdPerson)
+                    Toggle("Other / Unspecified", isOn: $includeOtherPerson)
+                }
+
+                Section("Number") {
+                    Toggle("Singular", isOn: $includeSingular)
+                    Toggle("Dual", isOn: $includeDual)
+                    Toggle("Plural", isOn: $includePlural)
+                    Toggle("Other / Unspecified", isOn: $includeOtherNumber)
+                }
+
+                Section("Dialect") {
+                    Toggle("Attic", isOn: $includeAttic)
+                    Toggle("Doric", isOn: $includeDoric)
+                    Toggle("Ionic", isOn: $includeIonic)
+                    Toggle("Aeolic", isOn: $includeAeolic)
+                    Toggle("Epic", isOn: $includeEpic)
+                    Toggle("Koine", isOn: $includeKoine)
+                    Toggle("Byzantine", isOn: $includeByzantine)
+                    Toggle("Unspecified / Other", isOn: $includeUnspecifiedDialect)
+                }
+            }
+            .navigationTitle("Verb Grid Filters")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
