@@ -95,5 +95,6 @@ struct VerbForm: Identifiable, Hashable {
     let tense: String?
     let mood: String?
     let voice: String?
+    let verbFormType: String?
     let dialect: String
 }

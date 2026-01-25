@@ -471,6 +471,11 @@ private struct VerbFormsView: View {
     @AppStorage(VerbGridFilterKeys.dialectByzantine) private var includeByzantine = true
     @AppStorage(VerbGridFilterKeys.dialectUnspecified) private var includeUnspecifiedDialect = true
 
+    @AppStorage(VerbGridFilterKeys.formTypeInfinitive) private var includeInfinitive = true
+    @AppStorage(VerbGridFilterKeys.formTypeParticiple) private var includeParticiple = true
+    @AppStorage(VerbGridFilterKeys.formTypeFinite) private var includeFinite = true
+    @AppStorage(VerbGridFilterKeys.formTypeOther) private var includeOtherFormType = true
+
     init(lemmaID: Int64, studyMode: Binding<StudyMode>) {
         self.lemmaID = lemmaID
         _studyMode = studyMode
@@ -604,7 +609,11 @@ private struct VerbFormsView: View {
             includeEpic: includeEpic,
             includeKoine: includeKoine,
             includeByzantine: includeByzantine,
-            includeUnspecifiedDialect: includeUnspecifiedDialect
+            includeUnspecifiedDialect: includeUnspecifiedDialect,
+            includeInfinitive: includeInfinitive,
+            includeParticiple: includeParticiple,
+            includeFinite: includeFinite,
+            includeOtherFormType: includeOtherFormType
         )
         return viewModel.forms.filter { settings.matches($0) }
     }
@@ -626,7 +635,11 @@ private struct VerbFormsView: View {
             includeEpic,
             includeKoine,
             includeByzantine,
-            includeUnspecifiedDialect
+            includeUnspecifiedDialect,
+            includeInfinitive,
+            includeParticiple,
+            includeFinite,
+            includeOtherFormType
         ]
         .map { $0 ? "1" : "0" }
         .joined()
@@ -652,6 +665,11 @@ private enum VerbGridFilterKeys {
     static let dialectKoine = "verbGrid.filter.dialect.koine"
     static let dialectByzantine = "verbGrid.filter.dialect.byzantine"
     static let dialectUnspecified = "verbGrid.filter.dialect.unspecified"
+
+    static let formTypeInfinitive = "verbGrid.filter.formType.infinitive"
+    static let formTypeParticiple = "verbGrid.filter.formType.participle"
+    static let formTypeFinite = "verbGrid.filter.formType.finite"
+    static let formTypeOther = "verbGrid.filter.formType.other"
 }
 
 private struct VerbGridFilterSettings {
@@ -674,8 +692,13 @@ private struct VerbGridFilterSettings {
     let includeByzantine: Bool
     let includeUnspecifiedDialect: Bool
 
+    let includeInfinitive: Bool
+    let includeParticiple: Bool
+    let includeFinite: Bool
+    let includeOtherFormType: Bool
+
     func matches(_ form: VerbForm) -> Bool {
-        matchesPerson(form) && matchesNumber(form) && matchesDialect(form)
+        matchesPerson(form) && matchesNumber(form) && matchesDialect(form) && matchesFormType(form)
     }
 
     private func matchesPerson(_ form: VerbForm) -> Bool {
@@ -732,6 +755,21 @@ private struct VerbGridFilterSettings {
             return includeUnspecifiedDialect
         }
     }
+
+    private func matchesFormType(_ form: VerbForm) -> Bool {
+        let raw = (form.verbFormType ?? form.mood ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = raw.isEmpty ? "unspecified" : raw.lowercased()
+        switch key {
+        case "infinitive":
+            return includeInfinitive
+        case "participle":
+            return includeParticiple
+        case "finite":
+            return includeFinite
+        default:
+            return includeOtherFormType
+        }
+    }
 }
 
 private struct VerbGridFilterSettingsView: View {
@@ -755,6 +793,11 @@ private struct VerbGridFilterSettingsView: View {
     @AppStorage(VerbGridFilterKeys.dialectKoine) private var includeKoine = true
     @AppStorage(VerbGridFilterKeys.dialectByzantine) private var includeByzantine = true
     @AppStorage(VerbGridFilterKeys.dialectUnspecified) private var includeUnspecifiedDialect = true
+
+    @AppStorage(VerbGridFilterKeys.formTypeInfinitive) private var includeInfinitive = true
+    @AppStorage(VerbGridFilterKeys.formTypeParticiple) private var includeParticiple = true
+    @AppStorage(VerbGridFilterKeys.formTypeFinite) private var includeFinite = true
+    @AppStorage(VerbGridFilterKeys.formTypeOther) private var includeOtherFormType = true
 
     var body: some View {
         NavigationStack {
@@ -782,6 +825,13 @@ private struct VerbGridFilterSettingsView: View {
                     Toggle("Koine", isOn: $includeKoine)
                     Toggle("Byzantine", isOn: $includeByzantine)
                     Toggle("Unspecified / Other", isOn: $includeUnspecifiedDialect)
+                }
+
+                Section("Form Type") {
+                    Toggle("Finite", isOn: $includeFinite)
+                    Toggle("Infinitive", isOn: $includeInfinitive)
+                    Toggle("Participle", isOn: $includeParticiple)
+                    Toggle("Other / Unspecified", isOn: $includeOtherFormType)
                 }
             }
             .navigationTitle("Verb Grid Filters")
@@ -823,7 +873,11 @@ private struct VerbMoodSection: Identifiable {
     let groups: [VerbGroup]
 
     static func build(from forms: [VerbForm]) -> [VerbMoodSection] {
-        let grouped = Dictionary(grouping: forms) { $0.mood?.lowercased() ?? "unspecified" }
+        let grouped = Dictionary(grouping: forms) { form in
+            form.mood?.lowercased()
+                ?? form.verbFormType?.lowercased()
+                ?? "unspecified"
+        }
         let order = ["indicative", "subjunctive", "optative", "imperative", "infinitive", "participle", "gerundive", "supine", "unspecified"]
 
         return grouped

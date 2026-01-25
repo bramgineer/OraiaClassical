@@ -331,6 +331,7 @@ actor SQLiteStore {
         guard let posID = posIDByCode["verb"] else { return [] }
         let sql = """
         SELECT form.id, form.form, form.person, form.number, form.tense, form.mood, form.voice,
+               form.verb_form_type,
                COALESCE(dialect.code, 'attic') AS dialect
         FROM form
         LEFT JOIN dialect ON form.dialect_id = dialect.id
@@ -351,8 +352,9 @@ actor SQLiteStore {
             let tense = stringColumn(statement, index: 4)
             let mood = stringColumn(statement, index: 5)
             let voice = stringColumn(statement, index: 6)
-            let dialect = stringColumn(statement, index: 7) ?? "attic"
-            forms.append(VerbForm(id: id, form: form, person: person, number: number, tense: tense, mood: mood, voice: voice, dialect: dialect))
+            let verbFormType = stringColumn(statement, index: 7)
+            let dialect = stringColumn(statement, index: 8) ?? "attic"
+            forms.append(VerbForm(id: id, form: form, person: person, number: number, tense: tense, mood: mood, voice: voice, verbFormType: verbFormType, dialect: dialect))
         }
         return forms
     }
