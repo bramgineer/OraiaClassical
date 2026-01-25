@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import re
 import sqlite3
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
@@ -94,16 +95,27 @@ CREATE INDEX IF NOT EXISTS idx_form_features_nominal ON form(pos_id, grammatical
 """
 
 
-DIALECT_TAGS = {
+DIALECT_ALIASES = {
+    "att": "attic",
     "attic": "attic",
+    "ion": "ionic",
     "ionic": "ionic",
+    "epi": "epic",
     "epic": "epic",
     "homeric": "homeric",
     "koine": "koine",
+    "byz": "byzantine",
     "byzantine": "byzantine",
+    "dor": "doric",
     "doric": "doric",
+    "aeol": "aeolic",
     "aeolic": "aeolic",
+    "aeolian": "aeolic",
+    "laconian": "laconian",
+    "boeotian": "boeotian",
 }
+
+DIALECT_TAGS = DIALECT_ALIASES
 
 CASE_TAGS = {
     "nominative": "nominative",
@@ -323,6 +335,77 @@ def parse_tags(tags: Iterable[str]) -> Dict[str, Optional[str]]:
         "degree": pick(DEGREE_TAGS),
         "verb_form_type": pick(VERB_FORM_TAGS),
     }
+
+
+def parse_dialect_from_label(label: str) -> Optional[str]:
+    if not label:
+        return None
+    tokens = re.findall(r"[a-z]+", label.lower())
+    for token in tokens:
+        if token in DIALECT_ALIASES:
+            return DIALECT_ALIASES[token]
+    return None
+
+
+def parse_table_features(label: str) -> Dict[str, Optional[str]]:
+    features = {
+        "dialect": None,
+        "tense": None,
+        "mood": None,
+        "voice": None,
+        "verb_form_type": None,
+    }
+    if not label:
+        return features
+
+    tokens = re.findall(r"[a-z]+", label.lower())
+
+    dialects = [DIALECT_ALIASES[t] for t in tokens if t in DIALECT_ALIASES]
+    if dialects:
+        features["dialect"] = dialects[0]
+
+    token_set = set(tokens)
+    if "future" in token_set and "perfect" in token_set:
+        features["tense"] = "future-perfect"
+    elif "pluperfect" in token_set:
+        features["tense"] = "pluperfect"
+    elif "perfect" in token_set:
+        features["tense"] = "perfect"
+    elif "imperfect" in token_set:
+        features["tense"] = "imperfect"
+    elif "aorist" in token_set:
+        features["tense"] = "aorist"
+    elif "present" in token_set:
+        features["tense"] = "present"
+    elif "future" in token_set:
+        features["tense"] = "future"
+
+    if "indicative" in token_set:
+        features["mood"] = "indicative"
+    elif "imperative" in token_set:
+        features["mood"] = "imperative"
+    elif "subjunctive" in token_set:
+        features["mood"] = "subjunctive"
+    elif "optative" in token_set:
+        features["mood"] = "optative"
+
+    if "middle" in token_set and "passive" in token_set:
+        features["voice"] = "middle-passive"
+    elif "active" in token_set:
+        features["voice"] = "active"
+    elif "middle" in token_set:
+        features["voice"] = "middle"
+    elif "passive" in token_set:
+        features["voice"] = "passive"
+
+    if "infinitive" in token_set:
+        features["verb_form_type"] = "infinitive"
+    elif "participle" in token_set:
+        features["verb_form_type"] = "participle"
+    elif "finite" in token_set:
+        features["verb_form_type"] = "finite"
+
+    return features
 
 
 def should_keep_form(form_entry: Dict) -> bool:
@@ -640,18 +723,36 @@ def import_jsonl(
                     ),
                 )
 
+            current_table_features = {
+                "dialect": None,
+                "tense": None,
+                "mood": None,
+                "voice": None,
+                "verb_form_type": None,
+            }
             for form_entry in entry.get("forms") or []:
+                tags = form_entry.get("tags") or []
+                tags_lc = [t.lower() for t in tags]
+                if "table-tags" in tags_lc:
+                    current_table_features = parse_table_features(form_entry.get("form") or "")
+                    continue
+
                 if not should_keep_form(form_entry):
                     continue
 
                 form_text = form_entry.get("form")
                 form_norm = normalize(form_text)
-                tags = form_entry.get("tags") or []
                 parsed = parse_tags(tags)
 
+                dialect_value = parsed["dialect"] or current_table_features["dialect"]
                 dialect_id = None
-                if parsed["dialect"]:
-                    dialect_id = ensure_dialect(conn, parsed["dialect"], dialect_cache)
+                if dialect_value:
+                    dialect_id = ensure_dialect(conn, dialect_value, dialect_cache)
+
+                tense_value = parsed["tense"] or current_table_features["tense"]
+                mood_value = parsed["mood"] or current_table_features["mood"]
+                voice_value = parsed["voice"] or current_table_features["voice"]
+                verb_form_type_value = parsed["verb_form_type"] or current_table_features["verb_form_type"]
 
                 conn.execute(
                     """
@@ -669,15 +770,15 @@ def import_jsonl(
                         form_text,
                         form_norm,
                         dialect_id,
-                        parsed["tense"],
-                        parsed["mood"],
-                        parsed["voice"],
+                        tense_value,
+                        mood_value,
+                        voice_value,
                         parsed["person"],
                         parsed["number"],
                         parsed["case"],
                         parsed["gender"],
                         parsed["degree"],
-                        parsed["verb_form_type"],
+                        verb_form_type_value,
                         0,
                         pronoun_type,
                         governs_case,
