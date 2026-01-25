@@ -1,0 +1,28 @@
+.DS_Store
+*.swp
+*.swo
+
+# Xcode
+build/
+DerivedData/
+*.xcworkspace
+*.xcuserstate
+*.xcuserdatad
+*.xcuserdata/
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# SQLite
+*.sqlite-shm
+*.sqlite-wal
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Crash logs
+*.xcresult

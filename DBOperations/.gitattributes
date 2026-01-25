@@ -1,0 +1,2 @@
+*.sqlite filter=lfs diff=lfs merge=lfs -text
+AncientGreek-2.jsonl filter=lfs diff=lfs merge=lfs -text

@@ -593,8 +593,7 @@ private struct VerbMoodSection: Identifiable {
 private struct VerbGroup: Identifiable {
     let id: String
     let title: String
-    let personTable: VerbPersonTable
-    let others: [VerbEntry]
+    let entries: [VerbEntry]
 
     static func build(from forms: [VerbForm]) -> [VerbGroup] {
         let grouped = Dictionary(grouping: forms) { form in
@@ -624,12 +623,10 @@ private struct VerbGroup: Identifiable {
                 let titleParts = parts.enumerated().map { index, value in
                     value.displayTitle(defaultTitle: index == 0 ? "Other Tense" : "Other Voice")
                 }
-                let table = VerbPersonTable(forms: forms)
                 return VerbGroup(
                     id: key,
                     title: titleParts.joined(separator: " • "),
-                    personTable: table,
-                    others: VerbEntry.buildOthers(from: forms, excluding: table.coveredFormIDs)
+                    entries: VerbEntry.buildOthers(from: forms, excluding: [])
                 )
             }
     }
@@ -645,13 +642,9 @@ private struct VerbGroupCard: View {
             Text(group.title)
                 .font(.headline)
 
-            if !group.personTable.isEmpty {
-                VerbPersonTableView(table: group.personTable, mode: mode, quizBinding: quizBinding)
-            }
-
-            if !group.others.isEmpty {
+            if !group.entries.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(group.others) { entry in
+                    ForEach(group.entries) { entry in
                         switch mode {
                         case .reference:
                             VerbReferenceRow(entry: entry, showMorphology: true)
@@ -670,54 +663,6 @@ private struct VerbGroupCard: View {
     }
 }
 
-private struct VerbPersonTableView: View {
-    let table: VerbPersonTable
-    let mode: StudyMode
-    let quizBinding: (Int64, String) -> Binding<QuizEntryState>
-
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("")
-                    .frame(width: 80, alignment: .leading)
-                ForEach(table.numbers) { number in
-                    Text(number.label)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-
-            ForEach(table.persons) { person in
-                HStack(spacing: 12) {
-                    Text(person.label)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(.secondary)
-                        .frame(width: 80, alignment: .leading)
-
-                    ForEach(table.numbers) { number in
-                        let cell = table.cell(person: person, number: number)
-                        Group {
-                            if let cell {
-                                switch mode {
-                                case .reference:
-                                    VerbReferenceRow(entry: cell, showMorphology: false)
-                                case .quiz:
-                                    VerbQuizRow(entry: cell, state: quizBinding(cell.id, cell.answer), showMorphology: false)
-                                }
-                            } else {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.clear)
-                                    .frame(height: 44)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-        }
-    }
-}
 
 private struct VerbReferenceRow: View {
     let entry: VerbEntry
@@ -924,66 +869,6 @@ private enum MorphologyNormalizer {
     }
 }
 
-private struct VerbPersonTable {
-    private let matrix: [String: [String: VerbEntry]]
-    let numbers: [NormalizedMorph]
-    let persons: [NormalizedMorph]
-    let coveredFormIDs: Set<Int64>
-
-    init(forms: [VerbForm]) {
-        var matrix: [String: [String: VerbEntry]] = [:]
-        var covered: Set<Int64> = []
-        var numberMap: [String: NormalizedMorph] = [:]
-        var personMap: [String: NormalizedMorph] = [:]
-
-        for form in forms {
-            guard let normalizedPerson = MorphologyNormalizer.normalizePerson(form.person),
-                  let normalizedNumber = MorphologyNormalizer.normalizeNumber(form.number) else {
-                continue
-            }
-
-            let entry = VerbEntry(form: form)
-
-            var personRow = matrix[normalizedPerson.key] ?? [:]
-            if personRow[normalizedNumber.key] == nil {
-                personRow[normalizedNumber.key] = entry
-                matrix[normalizedPerson.key] = personRow
-                covered.insert(form.id)
-            }
-
-            if numberMap[normalizedNumber.key] == nil {
-                numberMap[normalizedNumber.key] = normalizedNumber
-            }
-
-            if personMap[normalizedPerson.key] == nil {
-                personMap[normalizedPerson.key] = normalizedPerson
-            }
-        }
-
-        self.matrix = matrix
-        self.coveredFormIDs = covered
-        self.numbers = numberMap.values.sorted { lhs, rhs in
-            if lhs.order == rhs.order {
-                return lhs.label < rhs.label
-            }
-            return lhs.order < rhs.order
-        }
-        self.persons = personMap.values.sorted { lhs, rhs in
-            if lhs.order == rhs.order {
-                return lhs.label < rhs.label
-            }
-            return lhs.order < rhs.order
-        }
-    }
-
-    func cell(person: NormalizedMorph, number: NormalizedMorph) -> VerbEntry? {
-        matrix[person.key]?[number.key]
-    }
-
-    var isEmpty: Bool {
-        matrix.isEmpty
-    }
-}
 
 private struct VerbEntry: Identifiable {
     let id: Int64
