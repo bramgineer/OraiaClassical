@@ -684,17 +684,6 @@ private struct VerbReferenceRow: View {
                     TagPill(text: number, color: Color.blue.opacity(0.12), foreground: .blue)
                 }
 
-                if let tense = entry.tenseLabel {
-                    TagPill(text: tense, color: Color.green.opacity(0.12), foreground: .green)
-                }
-
-                if let mood = entry.moodLabel {
-                    TagPill(text: mood, color: Color.green.opacity(0.12), foreground: .green)
-                }
-
-                if let voice = entry.voiceLabel {
-                    TagPill(text: voice, color: Color.orange.opacity(0.15), foreground: .orange)
-                }
             }
         }
         .padding(.horizontal, 10)
