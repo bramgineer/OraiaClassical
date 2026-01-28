@@ -262,6 +262,98 @@ actor SQLiteStore {
         return results.map { mergedLemma($0, userState: userStates[$0.id]) }
     }
 
+    func fetchVocabQuizItems(listTitles: [String], includeFavorites: Bool, learningStatuses: [LearningStatus]) throws -> [VocabQuizItem] {
+        let candidates = try fetchQuizCandidateIDs(
+            listTitles: listTitles,
+            includeFavorites: includeFavorites,
+            learningStatuses: learningStatuses
+        )
+        guard !candidates.isEmpty else { return [] }
+
+        let glosses = try fetchFirstGlosses(for: Array(candidates))
+        let idsWithGloss = glosses.keys.sorted()
+        guard !idsWithGloss.isEmpty else { return [] }
+
+        let headwords = try fetchLemmaHeadwords(ids: idsWithGloss)
+        var items: [VocabQuizItem] = []
+        for id in idsWithGloss {
+            guard let headword = headwords[id], let gloss = glosses[id], !gloss.isEmpty else { continue }
+            items.append(VocabQuizItem(id: id, headword: headword, gloss: gloss))
+        }
+        return items
+    }
+
+    private func fetchQuizCandidateIDs(listTitles: [String], includeFavorites: Bool, learningStatuses: [LearningStatus]) throws -> Set<Int64> {
+        var idSet: Set<Int64> = []
+
+        if !listTitles.isEmpty {
+            for title in listTitles {
+                let ids = try fetchListLemmaIDs(listTitle: title)
+                idSet.formUnion(ids)
+            }
+        }
+
+        if includeFavorites {
+            let ids = try fetchUserFavoriteLemmaIDs()
+            idSet.formUnion(ids)
+        }
+
+        if !learningStatuses.isEmpty {
+            for status in learningStatuses {
+                let ids = try fetchUserLemmaIDs(with: status)
+                idSet.formUnion(ids)
+            }
+        }
+
+        return idSet
+    }
+
+    private func fetchLemmaHeadwords(ids: [Int64]) throws -> [Int64: String] {
+        guard let _ = db else { throw SQLiteStoreError.databaseNotFound }
+        guard !ids.isEmpty else { return [:] }
+        let placeholders = Array(repeating: "?", count: ids.count).joined(separator: ",")
+        let sql = "SELECT id, headword FROM lemma WHERE id IN (\(placeholders));"
+        let statement = try prepare(sql)
+        defer { sqlite3_finalize(statement) }
+        for (index, id) in ids.enumerated() {
+            sqlite3_bind_int64(statement, Int32(index + 1), id)
+        }
+        var result: [Int64: String] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let id = sqlite3_column_int64(statement, 0)
+            let headword = stringColumn(statement, index: 1) ?? ""
+            result[id] = headword
+        }
+        return result
+    }
+
+    private func fetchFirstGlosses(for ids: [Int64]) throws -> [Int64: String] {
+        guard let _ = db else { throw SQLiteStoreError.databaseNotFound }
+        guard !ids.isEmpty else { return [:] }
+        let placeholders = Array(repeating: "?", count: ids.count).joined(separator: ",")
+        let sql = """
+        SELECT lemma_id, gloss, sense_order, id
+        FROM sense
+        WHERE lemma_id IN (\(placeholders))
+        ORDER BY lemma_id, sense_order, id;
+        """
+        let statement = try prepare(sql)
+        defer { sqlite3_finalize(statement) }
+        for (index, id) in ids.enumerated() {
+            sqlite3_bind_int64(statement, Int32(index + 1), id)
+        }
+        var result: [Int64: String] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let lemmaID = sqlite3_column_int64(statement, 0)
+            if result[lemmaID] != nil { continue }
+            let gloss = stringColumn(statement, index: 1) ?? ""
+            let trimmed = gloss.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty { continue }
+            result[lemmaID] = trimmed
+        }
+        return result
+    }
+
     private func fetchListLemmaIDs(listTitle: String) throws -> [Int64] {
         guard let _ = userDb else { return [] }
         let sql = "SELECT lemma FROM vocabulary_list_entry WHERE vocabulary_list = ? ORDER BY lemma;"

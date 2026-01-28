@@ -78,6 +78,70 @@ struct VocabularyList: Identifiable, Hashable {
     let description: String?
 }
 
+enum QuizDirection: String, CaseIterable, Identifiable {
+    case l1ToL2 = "l1ToL2"
+    case l2ToL1 = "l2ToL1"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .l1ToL2:
+            return "English → Greek"
+        case .l2ToL1:
+            return "Greek → English"
+        }
+    }
+}
+
+enum QuizAnswerType: String, CaseIterable, Identifiable {
+    case textEntry = "textEntry"
+    case multipleChoice = "multipleChoice"
+    case flashCard = "flashCard"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .textEntry:
+            return "Text Entry"
+        case .multipleChoice:
+            return "Multiple Choice"
+        case .flashCard:
+            return "Flash Cards"
+        }
+    }
+}
+
+struct VocabQuizConfig: Hashable {
+    var listTitles: [String]
+    var includeFavorites: Bool
+    var learningStatuses: [LearningStatus]
+    var questionCount: Int
+    var direction: QuizDirection
+    var answerType: QuizAnswerType
+}
+
+struct VocabQuizItem: Identifiable, Hashable {
+    let id: Int64
+    let headword: String
+    let gloss: String
+}
+
+struct VocabQuizQuestion: Identifiable, Hashable {
+    let id: UUID
+    let prompt: String
+    let correctAnswer: String
+    let options: [String]
+}
+
+struct VocabQuizResponse: Identifiable, Hashable {
+    let id: UUID
+    let questionID: UUID
+    let userAnswer: String
+    let isCorrect: Bool
+}
+
 struct NounForm: Identifiable, Hashable {
     let id: Int64
     let form: String
