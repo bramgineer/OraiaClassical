@@ -263,11 +263,12 @@ actor SQLiteStore {
     }
 
     func fetchVocabQuizItems(listTitles: [String], includeFavorites: Bool, learningStatuses: [LearningStatus]) throws -> [VocabQuizItem] {
-        let candidates = try fetchQuizCandidateIDs(
+        guard !listTitles.isEmpty || includeFavorites else { return [] }
+        var candidates = try fetchCandidateLemmaIDs(
             listTitles: listTitles,
-            includeFavorites: includeFavorites,
-            learningStatuses: learningStatuses
+            includeFavorites: includeFavorites
         )
+        candidates = try applyStatusFilter(to: candidates, statuses: learningStatuses)
         guard !candidates.isEmpty else { return [] }
 
         let glosses = try fetchFirstGlosses(for: Array(candidates))
@@ -283,7 +284,18 @@ actor SQLiteStore {
         return items
     }
 
-    private func fetchQuizCandidateIDs(listTitles: [String], includeFavorites: Bool, learningStatuses: [LearningStatus]) throws -> Set<Int64> {
+    func fetchVerbQuizForms(listTitles: [String], includeFavorites: Bool, learningStatuses: [LearningStatus]) throws -> [VerbQuizForm] {
+        guard !listTitles.isEmpty || includeFavorites else { return [] }
+        var candidates = try fetchCandidateLemmaIDs(
+            listTitles: listTitles,
+            includeFavorites: includeFavorites
+        )
+        candidates = try applyStatusFilter(to: candidates, statuses: learningStatuses)
+        guard !candidates.isEmpty else { return [] }
+        return try fetchVerbForms(lemmaIDs: Array(candidates))
+    }
+
+    private func fetchCandidateLemmaIDs(listTitles: [String], includeFavorites: Bool) throws -> Set<Int64> {
         var idSet: Set<Int64> = []
 
         if !listTitles.isEmpty {
@@ -298,14 +310,72 @@ actor SQLiteStore {
             idSet.formUnion(ids)
         }
 
-        if !learningStatuses.isEmpty {
-            for status in learningStatuses {
-                let ids = try fetchUserLemmaIDs(with: status)
-                idSet.formUnion(ids)
-            }
-        }
-
         return idSet
+    }
+
+    private func applyStatusFilter(to ids: Set<Int64>, statuses: [LearningStatus]) throws -> Set<Int64> {
+        guard !statuses.isEmpty else { return ids }
+        guard !ids.isEmpty else { return [] }
+        var statusIDs: Set<Int64> = []
+        for status in statuses {
+            let items = try fetchUserLemmaIDs(with: status)
+            statusIDs.formUnion(items)
+        }
+        return ids.intersection(statusIDs)
+    }
+
+    private func fetchVerbForms(lemmaIDs: [Int64]) throws -> [VerbQuizForm] {
+        guard let _ = db else { throw SQLiteStoreError.databaseNotFound }
+        guard let verbPosID = posIDByCode["verb"] else { return [] }
+        guard !lemmaIDs.isEmpty else { return [] }
+
+        let placeholders = Array(repeating: "?", count: lemmaIDs.count).joined(separator: ",")
+        let sql = """
+        SELECT form.id, form.lemma_id, lemma.headword, form.form,
+               form.tense, form.mood, form.voice, form.person, form.number, form.verb_form_type
+        FROM form
+        JOIN lemma ON lemma.id = form.lemma_id
+        WHERE form.pos_id = ? AND form.lemma_id IN (\(placeholders))
+        ORDER BY form.lemma_id, form.id;
+        """
+        let statement = try prepare(sql)
+        defer { sqlite3_finalize(statement) }
+        var bindIndex: Int32 = 1
+        sqlite3_bind_int64(statement, bindIndex, verbPosID)
+        bindIndex += 1
+        for id in lemmaIDs {
+            sqlite3_bind_int64(statement, bindIndex, id)
+            bindIndex += 1
+        }
+        var results: [VerbQuizForm] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let id = sqlite3_column_int64(statement, 0)
+            let lemmaID = sqlite3_column_int64(statement, 1)
+            let headword = stringColumn(statement, index: 2) ?? ""
+            let form = stringColumn(statement, index: 3) ?? ""
+            let tense = stringColumn(statement, index: 4)
+            let mood = stringColumn(statement, index: 5)
+            let voice = stringColumn(statement, index: 6)
+            let person = stringColumn(statement, index: 7)
+            let number = stringColumn(statement, index: 8)
+            let verbFormType = stringColumn(statement, index: 9)
+            if form.isEmpty { continue }
+            results.append(
+                VerbQuizForm(
+                    id: id,
+                    lemmaID: lemmaID,
+                    headword: headword,
+                    form: form,
+                    tense: tense,
+                    mood: mood,
+                    voice: voice,
+                    person: person,
+                    number: number,
+                    verbFormType: verbFormType
+                )
+            )
+        }
+        return results
     }
 
     private func fetchLemmaHeadwords(ids: [Int64]) throws -> [Int64: String] {

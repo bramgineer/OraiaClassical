@@ -142,6 +142,82 @@ struct VocabQuizResponse: Identifiable, Hashable {
     let isCorrect: Bool
 }
 
+enum VerbQuizMode: String, CaseIterable, Identifiable {
+    case conjugation = "conjugation"
+    case transform = "transform"
+    case principalParts = "principalParts"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .conjugation:
+            return "Conjugation"
+        case .transform:
+            return "Transform Form"
+        case .principalParts:
+            return "Principal Parts"
+        }
+    }
+}
+
+struct VerbQuizConfig: Hashable {
+    var listTitles: [String]
+    var includeFavorites: Bool
+    var learningStatuses: [LearningStatus]
+    var questionCount: Int
+    var mode: VerbQuizMode
+    var answerType: QuizAnswerType
+    var tenses: [String]
+    var moods: [String]
+    var voices: [String]
+    var persons: [String]
+    var numbers: [String]
+    var includeOtherTense: Bool
+    var includeOtherMood: Bool
+    var includeOtherVoice: Bool
+    var includeOtherPerson: Bool
+    var includeOtherNumber: Bool
+}
+
+struct VerbQuizForm: Identifiable, Hashable {
+    let id: Int64
+    let lemmaID: Int64
+    let headword: String
+    let form: String
+    let tense: String?
+    let mood: String?
+    let voice: String?
+    let person: String?
+    let number: String?
+    let verbFormType: String?
+}
+
+struct VerbPrincipalParts: Hashable {
+    let forms: [String]
+}
+
+struct VerbQuizQuestion: Identifiable, Hashable {
+    let id: UUID
+    let mode: VerbQuizMode
+    let lemmaID: Int64
+    let headword: String
+    let prompt: String
+    let correctAnswer: String
+    let options: [String]
+    let sourceForm: String?
+    let targetLabel: String?
+    let principalParts: VerbPrincipalParts?
+}
+
+struct VerbQuizResponse: Identifiable, Hashable {
+    let id: UUID
+    let questionID: UUID
+    let userAnswer: String
+    let isCorrect: Bool
+    let userParts: [String]?
+}
+
 struct NounForm: Identifiable, Hashable {
     let id: Int64
     let form: String

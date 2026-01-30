@@ -39,11 +39,11 @@ struct MainPageView: View {
             }
 
             NavigationLink {
-                VocabQuizSetupView()
+                QuizHubView()
             } label: {
                 MainNavTile(
                     title: "Quizzes",
-                    subtitle: "Practice vocab",
+                    subtitle: "Vocab + verbs",
                     systemImage: "checkmark.seal"
                 )
             }
