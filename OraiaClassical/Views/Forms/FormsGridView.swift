@@ -179,10 +179,10 @@ private struct NounFormsView: View {
         .onAppear {
             viewModel.load()
         }
-        .onChange(of: studyMode) { _ in
+        .onChange(of: studyMode) {
             if studyMode == .quiz { synchronizeQuizEntries() }
         }
-        .onChange(of: viewModel.forms) { _ in
+        .onChange(of: viewModel.forms) {
             synchronizeQuizEntries()
         }
     }
@@ -506,13 +506,13 @@ private struct VerbFormsView: View {
         .onAppear {
             viewModel.load()
         }
-        .onChange(of: studyMode) { _ in
+        .onChange(of: studyMode) {
             if studyMode == .quiz { synchronizeQuizEntries() }
         }
-        .onChange(of: viewModel.forms) { _ in
+        .onChange(of: viewModel.forms) {
             synchronizeQuizEntries()
         }
-        .onChange(of: filterToken) { _ in
+        .onChange(of: filterToken) {
             synchronizeQuizEntries()
         }
     }

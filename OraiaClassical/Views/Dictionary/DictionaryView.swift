@@ -79,19 +79,19 @@ struct DictionaryView: View {
             .onAppear {
                 viewModel.refresh(query: query, options: options)
             }
-            .onChange(of: query) { _ in
+            .onChange(of: query) {
                 viewModel.search(query: query, options: options)
             }
-            .onChange(of: searchModeRaw) { _ in
+            .onChange(of: searchModeRaw) {
                 viewModel.search(query: query, options: options)
             }
-            .onChange(of: favoritesOnly) { _ in
+            .onChange(of: favoritesOnly) {
                 viewModel.search(query: query, options: options)
             }
-            .onChange(of: learningStatusRaw) { _ in
+            .onChange(of: learningStatusRaw) {
                 viewModel.search(query: query, options: options)
             }
-            .onChange(of: listTitle) { _ in
+            .onChange(of: listTitle) {
                 viewModel.search(query: query, options: options)
             }
             .onReceive(NotificationCenter.default.publisher(for: .lemmaDidUpdate)) { _ in

@@ -129,7 +129,7 @@ private struct VocabularyListDetailView: View {
         .onAppear {
             viewModel.loadEntries()
         }
-        .onChange(of: query) { _ in
+        .onChange(of: query) {
             viewModel.search(query: query)
         }
     }

@@ -142,7 +142,7 @@ struct VerbConjugationQuizSetupView: View {
             viewModel.load()
             refreshCount()
         }
-        .onChange(of: selectionToken) { _ in
+        .onChange(of: selectionToken) {
             refreshCount()
         }
     }
