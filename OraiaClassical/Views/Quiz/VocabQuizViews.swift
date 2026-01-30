@@ -10,18 +10,28 @@ struct VocabQuizSetupView: View {
     @State private var direction: QuizDirection = .l1ToL2
     @State private var answerType: QuizAnswerType = .textEntry
     @State private var startQuiz = false
+    @State private var showListPicker = false
 
     var body: some View {
         Form {
             Section("Sources") {
                 Toggle("Include favorites", isOn: $includeFavorites)
 
-                if viewModel.lists.isEmpty {
-                    Text("No lists available.")
-                        .foregroundColor(.secondary)
-                } else {
-                    ForEach(viewModel.lists) { list in
-                        Toggle(list.title, isOn: binding(for: list.title, in: $selectedLists))
+                Button {
+                    showListPicker = true
+                } label: {
+                    HStack {
+                        Text("Lists")
+                        Spacer()
+                        if selectedLists.isEmpty {
+                            Text("None")
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("\(selectedLists.count) selected")
+                                .foregroundColor(.secondary)
+                        }
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
                     }
                 }
 
@@ -77,6 +87,13 @@ struct VocabQuizSetupView: View {
                 label: { EmptyView() }
             )
         )
+        .sheet(isPresented: $showListPicker) {
+            QuizListPickerView(
+                title: "Choose Lists",
+                lists: viewModel.lists,
+                selection: $selectedLists
+            )
+        }
         .onAppear {
             viewModel.load()
             refreshCount()
