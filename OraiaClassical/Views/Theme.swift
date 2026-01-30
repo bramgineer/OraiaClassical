@@ -56,6 +56,8 @@ private struct ThemedAppModifier: ViewModifier {
             .foregroundStyle(theme.text)
             .tint(theme.accent)
             .background(theme.background.ignoresSafeArea())
+            .toolbarBackground(theme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 
