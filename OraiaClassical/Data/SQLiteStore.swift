@@ -38,7 +38,7 @@ actor SQLiteStore {
     private var posIDByCode: [String: Int64] = [:]
     private(set) var isReadOnly: Bool = false
 
-    private let userSchemaSQL = """
+    private static let userSchemaSQL = """
     PRAGMA foreign_keys = ON;
 
     CREATE TABLE IF NOT EXISTS vocabulary_list (
@@ -67,9 +67,11 @@ actor SQLiteStore {
     """
 
     init() {
-        openDatabase()
-        openUserDatabase()
-        loadPosCodes()
+        let (connection, readOnly) = Self.openDatabase()
+        db = connection
+        isReadOnly = readOnly
+        userDb = Self.openUserDatabase()
+        posIDByCode = Self.loadPosCodes(db: connection)
     }
 
     deinit {
@@ -81,12 +83,13 @@ actor SQLiteStore {
         }
     }
 
-    private func openDatabase() {
+    private static func openDatabase() -> (OpaquePointer?, Bool) {
         guard let url = Bundle.main.url(forResource: "ag_db", withExtension: "sqlite") else {
-            return
+            return (nil, false)
         }
 
         var connection: OpaquePointer?
+        var readOnly = false
         let path = url.path
         let readwrite = sqlite3_open_v2(path, &connection, SQLITE_OPEN_READWRITE, nil)
         if readwrite != SQLITE_OK {
@@ -97,18 +100,19 @@ actor SQLiteStore {
                 sqlite3_close(connection)
                 connection = nil
             } else {
-                isReadOnly = true
+                readOnly = true
             }
         }
 
-        db = connection
-        if let db {
-            sqlite3_busy_timeout(db, 2000)
-            sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nil, nil, nil)
+        if let connection {
+            sqlite3_busy_timeout(connection, 2000)
+            sqlite3_exec(connection, "PRAGMA foreign_keys = ON;", nil, nil, nil)
         }
+
+        return (connection, readOnly)
     }
 
-    private func openUserDatabase() {
+    private static func openUserDatabase() -> OpaquePointer? {
         let fileManager = FileManager.default
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
         let bundleID = Bundle.main.bundleIdentifier ?? "OraiaClassical"
@@ -117,37 +121,39 @@ actor SQLiteStore {
             try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         }
         let dbURL = directory?.appendingPathComponent("user_data.sqlite")
-        guard let path = dbURL?.path else { return }
+        guard let path = dbURL?.path else { return nil }
 
         var connection: OpaquePointer?
         let result = sqlite3_open_v2(path, &connection, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nil)
         if result != SQLITE_OK {
             sqlite3_close(connection)
-            connection = nil
-            return
+            return nil
         }
 
-        userDb = connection
-        if let userDb {
-            sqlite3_busy_timeout(userDb, 2000)
-            sqlite3_exec(userDb, "PRAGMA foreign_keys = ON;", nil, nil, nil)
-            sqlite3_exec(userDb, userSchemaSQL, nil, nil, nil)
+        if let connection {
+            sqlite3_busy_timeout(connection, 2000)
+            sqlite3_exec(connection, "PRAGMA foreign_keys = ON;", nil, nil, nil)
+            sqlite3_exec(connection, userSchemaSQL, nil, nil, nil)
         }
+
+        return connection
     }
 
-    private func loadPosCodes() {
-        guard let db else { return }
+    private static func loadPosCodes(db: OpaquePointer?) -> [String: Int64] {
+        guard let db else { return [:] }
         let sql = "SELECT id, code FROM pos;"
         var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else { return }
+        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else { return [:] }
         defer { sqlite3_finalize(statement) }
 
+        var result: [String: Int64] = [:]
         while sqlite3_step(statement) == SQLITE_ROW {
             let id = sqlite3_column_int64(statement, 0)
             guard let codePointer = sqlite3_column_text(statement, 1) else { continue }
             let code = String(cString: codePointer)
-            posIDByCode[code] = id
+            result[code] = id
         }
+        return result
     }
 
     private func errorMessage() -> String {
