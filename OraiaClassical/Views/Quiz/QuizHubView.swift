@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct QuizHubView: View {
+    @Environment(\.theme) private var theme
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -33,26 +35,27 @@ private struct QuizTile: View {
     let title: String
     let subtitle: String
     let systemImage: String
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: systemImage)
                 .font(.title2)
-                .foregroundColor(.accentColor)
+                .foregroundColor(theme.accent)
 
             Text(title)
                 .font(.headline)
-                .foregroundColor(.primary)
+                .foregroundColor(theme.text)
 
             Text(subtitle)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.text.opacity(0.7))
         }
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .leading)
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.surface)
         )
     }
 }

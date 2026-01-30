@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct EntryDetailView: View {
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel: EntryDetailViewModel
 
     init(lemmaID: Int64) {
@@ -15,7 +16,7 @@ struct EntryDetailView: View {
                         .padding(.top, 40)
                 } else if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                         .padding(.top, 40)
                 } else if let lemma = viewModel.lemma {
                     header(for: lemma)
@@ -46,7 +47,7 @@ struct EntryDetailView: View {
                 viewModel.toggleFavorite()
             } label: {
                 Image(systemName: lemma.isFavorite ? "star.fill" : "star")
-                    .foregroundColor(lemma.isFavorite ? .yellow : .secondary)
+                    .foregroundColor(lemma.isFavorite ? .yellow : theme.text.opacity(0.6))
                     .font(.title3)
             }
             .buttonStyle(.plain)
@@ -60,7 +61,7 @@ struct EntryDetailView: View {
 
             if lemma.posCodes.isEmpty {
                 Text("No POS data")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             } else {
                 let columns = [GridItem(.adaptive(minimum: 80), spacing: 8)]
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
@@ -119,12 +120,12 @@ struct EntryDetailView: View {
                 .font(.headline)
             Spacer()
             Image(systemName: "chevron.right")
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.text.opacity(0.6))
         }
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.surface)
         )
     }
 
@@ -135,13 +136,13 @@ struct EntryDetailView: View {
 
             if lemma.senseGroups.isEmpty {
                 Text("No senses available")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             } else {
                 ForEach(lemma.senseGroups) { group in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(group.posCode.displayTitle(defaultTitle: group.posCode))
                             .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(theme.text.opacity(0.7))
 
                         ForEach(group.senses) { sense in
                             VStack(alignment: .leading, spacing: 4) {
@@ -150,7 +151,7 @@ struct EntryDetailView: View {
                                 if let definition = sense.definition, !definition.isEmpty {
                                     Text(definition)
                                         .font(.body)
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(theme.text.opacity(0.7))
                                 }
                             }
                             .padding(.vertical, 4)

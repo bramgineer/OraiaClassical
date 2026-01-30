@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct VocabularyListsView: View {
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel = VocabularyListsViewModel()
     @State private var showCreateSheet = false
 
@@ -11,11 +12,11 @@ struct VocabularyListsView: View {
                     .padding(.top, 20)
             } else if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
                     .padding(.top, 20)
             } else if viewModel.lists.isEmpty {
                 Text("No lists yet. Create one to start collecting words.")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
                     .padding(.top, 20)
             }
 
@@ -30,11 +31,12 @@ struct VocabularyListsView: View {
                             if let description = list.description, !description.isEmpty {
                                 Text(description)
                                     .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(theme.text.opacity(0.7))
                             }
                         }
                         .padding(.vertical, 4)
                     }
+                    .listRowBackground(theme.surfaceAlt)
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
                             viewModel.deleteList(title: list.title)
@@ -45,6 +47,7 @@ struct VocabularyListsView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
         }
         .navigationTitle("Vocabulary Lists")
         .toolbar {
@@ -72,6 +75,7 @@ private struct VocabularyListDetailView: View {
     let list: VocabularyList
     @StateObject private var viewModel: VocabularyListDetailViewModel
     @State private var query = ""
+    @Environment(\.theme) private var theme
 
     init(list: VocabularyList) {
         self.list = list
@@ -84,17 +88,18 @@ private struct VocabularyListDetailView: View {
 
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
 
             List {
                 Section("Words") {
                     if viewModel.entries.isEmpty {
                         Text("No words in this list yet.")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(theme.text.opacity(0.7))
                     } else {
                         ForEach(viewModel.entries) { entry in
                             LemmaRowView(lemma: entry)
+                                .listRowBackground(theme.surfaceAlt)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
                                         viewModel.removeLemma(entry.id)
@@ -119,11 +124,13 @@ private struct VocabularyListDetailView: View {
                                 }
                                 .buttonStyle(.plain)
                             }
+                            .listRowBackground(theme.surfaceAlt)
                         }
                     }
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
         }
         .navigationTitle(list.title)
         .onAppear {
@@ -142,7 +149,7 @@ private struct VocabularyListDetailView: View {
     private var searchBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.text.opacity(0.6))
 
             TextField("Search lemma to add", text: $query)
                 .textInputAutocapitalization(.never)
@@ -154,7 +161,7 @@ private struct VocabularyListDetailView: View {
                     viewModel.searchResults = []
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.6))
                 }
                 .buttonStyle(.plain)
             }
@@ -162,7 +169,7 @@ private struct VocabularyListDetailView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.surfaceAlt)
         )
         .padding(.horizontal, 16)
     }
@@ -170,6 +177,7 @@ private struct VocabularyListDetailView: View {
 
 private struct LemmaRowView: View {
     let lemma: LemmaSummary
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -178,7 +186,7 @@ private struct LemmaRowView: View {
             if let pos = lemma.primaryPOS, !pos.isEmpty {
                 Text(pos.displayTitle(defaultTitle: pos))
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
         }
         .padding(.vertical, 4)
@@ -187,6 +195,7 @@ private struct LemmaRowView: View {
 
 private struct NewVocabularyListSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.theme) private var theme
     @State private var title = ""
     @State private var description = ""
 
@@ -203,6 +212,7 @@ private struct NewVocabularyListSheet: View {
                     TextField("Optional description", text: $description)
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("New List")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -222,5 +232,6 @@ private struct NewVocabularyListSheet: View {
                 }
             }
         }
+        .background(theme.background)
     }
 }

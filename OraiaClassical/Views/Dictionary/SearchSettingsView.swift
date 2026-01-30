@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SearchSettingsView: View {
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel = SearchSettingsViewModel()
 
     @AppStorage(SearchSettingsKeys.searchMode) private var searchModeRaw = SearchMode.startsWith.rawValue
@@ -34,7 +35,7 @@ struct SearchSettingsView: View {
 
                 if viewModel.lists.isEmpty {
                     Text("No lists available")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                 } else {
                     Picker("Vocabulary list", selection: $listTitle) {
                         Text("Any").tag("")
@@ -45,6 +46,7 @@ struct SearchSettingsView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
         .navigationTitle("Search Settings")
         .onAppear {
             viewModel.load()

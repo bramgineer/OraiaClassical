@@ -5,12 +5,15 @@ struct QuizListPickerView: View {
     let lists: [VocabularyList]
     @Binding var selection: Set<String>
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.theme) private var theme
 
     var body: some View {
         NavigationStack {
             List(lists) { list in
                 Toggle(list.title, isOn: binding(for: list.title))
+                    .listRowBackground(theme.surfaceAlt)
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle(title)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -18,6 +21,7 @@ struct QuizListPickerView: View {
                 }
             }
         }
+        .background(theme.background)
     }
 
     private func binding(for value: String) -> Binding<Bool> {

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct VerbConjugationQuizSetupView: View {
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel = VerbQuizSetupViewModel()
 
     @State private var selectedLists: Set<String> = []
@@ -38,13 +39,13 @@ struct VerbConjugationQuizSetupView: View {
                         Spacer()
                         if selectedLists.isEmpty {
                             Text("None")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(theme.text.opacity(0.7))
                         } else {
                             Text("\(selectedLists.count) selected")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(theme.text.opacity(0.7))
                         }
                         Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(theme.text.opacity(0.6))
                     }
                 }
 
@@ -84,11 +85,11 @@ struct VerbConjugationQuizSetupView: View {
                 }
                 Text("Available: \(viewModel.availableCount)")
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
                 if viewModel.availableCount > 0 {
                     Text("Quiz will be \(min(questionCount, viewModel.availableCount)) questions.")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                 }
             }
 
@@ -111,7 +112,7 @@ struct VerbConjugationQuizSetupView: View {
                 if mode == .principalParts {
                     Text("Principal parts are text entry only.")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                 }
             }
 
@@ -122,15 +123,12 @@ struct VerbConjugationQuizSetupView: View {
                 .disabled(!hasSources || viewModel.availableCount == 0)
             }
         }
+        .scrollContentBackground(.hidden)
         .navigationTitle("Verb Quiz")
         .navigationBarTitleDisplayMode(.inline)
-        .background(
-            NavigationLink(
-                destination: VerbConjugationQuizSessionView(config: config),
-                isActive: $startQuiz,
-                label: { EmptyView() }
-            )
-        )
+        .navigationDestination(isPresented: $startQuiz) {
+            VerbConjugationQuizSessionView(config: config)
+        }
         .sheet(isPresented: $showListPicker) {
             QuizListPickerView(
                 title: "Choose Lists",
@@ -222,6 +220,7 @@ struct VerbConjugationQuizSetupView: View {
 }
 
 struct VerbConjugationQuizSessionView: View {
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel: VerbQuizSessionViewModel
     @State private var textAnswer = ""
     @State private var revealFlashCard = false
@@ -238,7 +237,7 @@ struct VerbConjugationQuizSessionView: View {
                     .padding(.top, 40)
             } else if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
                     .padding(.top, 40)
             } else if viewModel.isComplete {
                 VerbConjugationQuizReportView(questions: viewModel.questions, responses: viewModel.responses)
@@ -260,7 +259,7 @@ struct VerbConjugationQuizSessionView: View {
         HStack {
             Text("Question \(min(viewModel.currentIndex + 1, viewModel.questions.count)) of \(viewModel.questions.count)")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.text.opacity(0.7))
             Spacer()
         }
     }
@@ -289,7 +288,7 @@ struct VerbConjugationQuizSessionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.surface)
         )
     }
 
@@ -302,7 +301,7 @@ struct VerbConjugationQuizSessionView: View {
                 .padding(.horizontal, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(.systemBackground))
+                        .fill(theme.surfaceAlt)
                 )
 
             if viewModel.showFeedback, let response = viewModel.lastResponse {
@@ -332,14 +331,14 @@ struct VerbConjugationQuizSessionView: View {
                 } label: {
                     HStack {
                         Text(option)
-                            .foregroundColor(.primary)
+                            .foregroundColor(theme.text)
                         Spacer()
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(.systemBackground))
+                            .fill(theme.surfaceAlt)
                     )
                 }
                 .buttonStyle(.plain)
@@ -363,7 +362,7 @@ struct VerbConjugationQuizSessionView: View {
             } else {
                 Text("Tap reveal to show the answer.")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
 
             if viewModel.showFeedback, let response = viewModel.lastResponse {
@@ -410,7 +409,7 @@ struct VerbConjugationQuizSessionView: View {
                 .padding(.horizontal, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(.systemBackground))
+                        .fill(theme.surfaceAlt)
                 )
             }
 
@@ -439,13 +438,14 @@ struct VerbConjugationQuizSessionView: View {
             if !response.isCorrect {
                 Text("Answer: \(correctAnswer)")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
         }
     }
 }
 
 struct VerbConjugationQuizReportView: View {
+    @Environment(\.theme) private var theme
     let questions: [VerbQuizQuestion]
     let responses: [UUID: VerbQuizResponse]
 
@@ -462,7 +462,7 @@ struct VerbConjugationQuizReportView: View {
                         .font(.title2.weight(.semibold))
                     Text("\(score.correct) / \(score.total) correct")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                 }
 
                 ForEach(questions) { question in
@@ -473,11 +473,11 @@ struct VerbConjugationQuizReportView: View {
                         if let parts = question.principalParts?.forms {
                             Text("Answer: \(parts.joined(separator: " • "))")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(theme.text.opacity(0.7))
                         } else {
                             Text("Answer: \(question.correctAnswer)")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(theme.text.opacity(0.7))
                         }
                         if let response {
                             if let userParts = response.userParts {
@@ -495,7 +495,7 @@ struct VerbConjugationQuizReportView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(.secondarySystemBackground))
+                            .fill(theme.surface)
                     )
                 }
             }

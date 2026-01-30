@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DictionaryView: View {
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel = DictionaryViewModel()
     @State private var query = ""
 
@@ -40,15 +41,15 @@ struct DictionaryView: View {
                         .padding(.top, 20)
                 } else if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                         .padding(.top, 20)
                 } else if query.trimmed().isEmpty && !hasActiveFilters {
                     Text("Search by lemma or apply a filter to see results.")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                         .padding(.top, 20)
                 } else if viewModel.results.isEmpty {
                     Text("No results found.")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                         .padding(.top, 20)
                 } else {
                     List(viewModel.results) { lemma in
@@ -57,8 +58,10 @@ struct DictionaryView: View {
                         } label: {
                             LemmaCardView(lemma: lemma)
                         }
+                        .listRowBackground(theme.surfaceAlt)
                     }
                     .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
             }
             .padding(.horizontal, 16)
@@ -106,7 +109,7 @@ struct DictionaryView: View {
     private var searchBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.text.opacity(0.6))
 
             TextField("Search lemma", text: $query)
                 .textInputAutocapitalization(.never)
@@ -117,7 +120,7 @@ struct DictionaryView: View {
                     query = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.6))
                 }
                 .buttonStyle(.plain)
             }
@@ -125,7 +128,7 @@ struct DictionaryView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.surfaceAlt)
         )
     }
 }

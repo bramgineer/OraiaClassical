@@ -5,6 +5,7 @@ struct FormsGridView: View {
     let lemmaHeadword: String
     let posCode: String
 
+    @Environment(\.theme) private var theme
     @State private var studyMode: StudyMode = .reference
     @State private var showVerbFilters = false
 
@@ -19,7 +20,7 @@ struct FormsGridView: View {
                 VerbFormsView(lemmaID: lemmaID, studyMode: $studyMode)
             default:
                 Text("No forms available for this part of speech.")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
                     .padding(.top, 40)
             }
         }
@@ -51,7 +52,7 @@ struct FormsGridView: View {
             if let description = posDescription {
                 Text(description)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
 
             Picker("Study Mode", selection: $studyMode) {
@@ -146,6 +147,7 @@ private struct NounFormsView: View {
     let lemmaID: Int64
     @Binding var studyMode: StudyMode
 
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel: NounFormsViewModel
     @State private var quizEntries: [Int64: QuizEntryState] = [:]
 
@@ -164,7 +166,7 @@ private struct NounFormsView: View {
             case false:
                 if let error = viewModel.errorMessage {
                     Text(error)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                         .padding(.top, 40)
                 } else {
                     if studyMode == .quiz {
@@ -203,7 +205,7 @@ private struct NounFormsView: View {
                                     VStack(alignment: .leading, spacing: 12) {
                                         Text(numberSection.title)
                                             .font(.headline)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(theme.text.opacity(0.7))
                                         ForEach(numberSection.rows) { row in
                                             NounCaseCard(row: row, mode: studyMode, quizBinding: quizBinding)
                                         }
@@ -347,6 +349,7 @@ private struct NounCaseCard: View {
     let row: NounCaseRow
     let mode: StudyMode
     let quizBinding: (Int64, String) -> Binding<QuizEntryState>
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -367,7 +370,7 @@ private struct NounCaseCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.surface)
         )
     }
 }
@@ -392,6 +395,7 @@ private struct NounReferenceRow: View {
 private struct NounQuizRow: View {
     let entry: NounEntry
     @Binding var state: QuizEntryState
+    @Environment(\.theme) private var theme
 
     private var borderColor: Color {
         if state.isCorrect { return .green }
@@ -420,7 +424,7 @@ private struct NounQuizRow: View {
             .padding(.horizontal, 12)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(.systemBackground))
+                    .fill(theme.surfaceAlt)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -437,7 +441,7 @@ private struct NounQuizRow: View {
             if state.isRevealed && !state.input.equalsMorph(entry.answer) {
                 Text(entry.answer)
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
         }
     }
@@ -449,6 +453,7 @@ private struct VerbFormsView: View {
     let lemmaID: Int64
     @Binding var studyMode: StudyMode
 
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel: VerbFormsViewModel
     @State private var quizEntries: [Int64: QuizEntryState] = [:]
 
@@ -491,7 +496,7 @@ private struct VerbFormsView: View {
             case false:
                 if let error = viewModel.errorMessage {
                     Text(error)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                         .padding(.top, 40)
                 } else {
                     if studyMode == .quiz {
@@ -533,7 +538,7 @@ private struct VerbFormsView: View {
                                     VStack(alignment: .leading, spacing: 16) {
                                         Text(moodSection.title)
                                             .font(.headline)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(theme.text.opacity(0.7))
                                         ForEach(moodSection.groups) { group in
                                             VerbGroupCard(group: group, mode: studyMode, quizBinding: quizBinding)
                                         }
@@ -774,6 +779,7 @@ private struct VerbGridFilterSettings {
 
 private struct VerbGridFilterSettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.theme) private var theme
 
     @AppStorage(VerbGridFilterKeys.personFirst) private var includeFirstPerson = true
     @AppStorage(VerbGridFilterKeys.personSecond) private var includeSecondPerson = true
@@ -834,6 +840,7 @@ private struct VerbGridFilterSettingsView: View {
                     Toggle("Other / Unspecified", isOn: $includeOtherFormType)
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Verb Grid Filters")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -843,6 +850,7 @@ private struct VerbGridFilterSettingsView: View {
                 }
             }
         }
+        .background(theme.background)
     }
 }
 
@@ -936,6 +944,7 @@ private struct VerbGroupCard: View {
     let group: VerbGroup
     let mode: StudyMode
     let quizBinding: (Int64, String) -> Binding<QuizEntryState>
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -958,7 +967,7 @@ private struct VerbGroupCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.surface)
         )
     }
 }
@@ -967,6 +976,7 @@ private struct VerbGroupCard: View {
 private struct VerbReferenceRow: View {
     let entry: VerbEntry
     let showMorphology: Bool
+    @Environment(\.theme) private var theme
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -990,7 +1000,7 @@ private struct VerbReferenceRow: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.systemBackground))
+                .fill(theme.surfaceAlt)
         )
     }
 }
@@ -999,6 +1009,7 @@ private struct VerbQuizRow: View {
     let entry: VerbEntry
     @Binding var state: QuizEntryState
     let showMorphology: Bool
+    @Environment(\.theme) private var theme
 
     private var borderColor: Color {
         if state.isCorrect { return .green }
@@ -1035,7 +1046,7 @@ private struct VerbQuizRow: View {
             .padding(.horizontal, 12)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(.systemBackground))
+                    .fill(theme.surfaceAlt)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -1066,7 +1077,7 @@ private struct VerbQuizRow: View {
             if state.isRevealed && !state.input.equalsMorph(entry.answer) {
                 Text(entry.answer)
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
         }
     }
@@ -1260,15 +1271,16 @@ private struct VerbEntry: Identifiable {
 
 private struct EmptyFormsPlaceholder: View {
     let message: String
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "text.book.closed")
                 .font(.largeTitle)
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.text.opacity(0.6))
             Text(message)
                 .font(.body)
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.text.opacity(0.7))
         }
         .frame(maxWidth: .infinity, alignment: .center)
         .padding()

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct VocabQuizSetupView: View {
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel = VocabQuizSetupViewModel()
 
     @State private var selectedLists: Set<String> = []
@@ -25,13 +26,13 @@ struct VocabQuizSetupView: View {
                         Spacer()
                         if selectedLists.isEmpty {
                             Text("None")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(theme.text.opacity(0.7))
                         } else {
                             Text("\(selectedLists.count) selected")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(theme.text.opacity(0.7))
                         }
                         Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(theme.text.opacity(0.6))
                     }
                 }
 
@@ -46,11 +47,11 @@ struct VocabQuizSetupView: View {
                 }
                 Text("Available: \(viewModel.availableCount)")
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
                 if viewModel.availableCount > 0 {
                     Text("Quiz will be \(min(questionCount, viewModel.availableCount)) questions.")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                 }
             }
 
@@ -78,15 +79,12 @@ struct VocabQuizSetupView: View {
                 .disabled(viewModel.availableCount == 0)
             }
         }
+        .scrollContentBackground(.hidden)
         .navigationTitle("Vocab Quiz")
         .navigationBarTitleDisplayMode(.inline)
-        .background(
-            NavigationLink(
-                destination: VocabQuizSessionView(config: config),
-                isActive: $startQuiz,
-                label: { EmptyView() }
-            )
-        )
+        .navigationDestination(isPresented: $startQuiz) {
+            VocabQuizSessionView(config: config)
+        }
         .sheet(isPresented: $showListPicker) {
             QuizListPickerView(
                 title: "Choose Lists",
@@ -139,6 +137,7 @@ struct VocabQuizSetupView: View {
 }
 
 struct VocabQuizSessionView: View {
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel: VocabQuizSessionViewModel
     @State private var textAnswer = ""
     @State private var revealFlashCard = false
@@ -154,7 +153,7 @@ struct VocabQuizSessionView: View {
                     .padding(.top, 40)
             } else if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
                     .padding(.top, 40)
             } else if viewModel.isComplete {
                 VocabQuizReportView(questions: viewModel.questions, responses: viewModel.responses)
@@ -176,7 +175,7 @@ struct VocabQuizSessionView: View {
         HStack {
             Text("Question \(min(viewModel.currentIndex + 1, viewModel.questions.count)) of \(viewModel.questions.count)")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.text.opacity(0.7))
             Spacer()
         }
     }
@@ -200,7 +199,7 @@ struct VocabQuizSessionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.surface)
         )
     }
 
@@ -213,7 +212,7 @@ struct VocabQuizSessionView: View {
                 .padding(.horizontal, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(.systemBackground))
+                        .fill(theme.surfaceAlt)
                 )
 
             if viewModel.showFeedback, let response = viewModel.lastResponse {
@@ -243,14 +242,14 @@ struct VocabQuizSessionView: View {
                 } label: {
                     HStack {
                         Text(option)
-                            .foregroundColor(.primary)
+                            .foregroundColor(theme.text)
                         Spacer()
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(.systemBackground))
+                            .fill(theme.surfaceAlt)
                     )
                 }
                 .buttonStyle(.plain)
@@ -274,7 +273,7 @@ struct VocabQuizSessionView: View {
             } else {
                 Text("Tap reveal to show the answer.")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
 
             if viewModel.showFeedback, let response = viewModel.lastResponse {
@@ -315,13 +314,14 @@ struct VocabQuizSessionView: View {
             if !response.isCorrect {
                 Text("Answer: \(correctAnswer)")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.text.opacity(0.7))
             }
         }
     }
 }
 
 struct VocabQuizReportView: View {
+    @Environment(\.theme) private var theme
     let questions: [VocabQuizQuestion]
     let responses: [UUID: VocabQuizResponse]
 
@@ -338,7 +338,7 @@ struct VocabQuizReportView: View {
                         .font(.title2.weight(.semibold))
                     Text("\(score.correct) / \(score.total) correct")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.text.opacity(0.7))
                 }
 
                 ForEach(questions) { question in
@@ -348,7 +348,7 @@ struct VocabQuizReportView: View {
                             .font(.headline)
                         Text("Answer: \(question.correctAnswer)")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(theme.text.opacity(0.7))
                         if let response {
                             Text("Your response: \(response.userAnswer)")
                                 .font(.footnote)
@@ -359,7 +359,7 @@ struct VocabQuizReportView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(.secondarySystemBackground))
+                            .fill(theme.surface)
                     )
                 }
             }
